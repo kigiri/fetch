@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>cURL to Fetch</title>
+  <link href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEQAAAAAAAAERAAAAAAAAAREAAAAAAAARERAAAAAAAREREQAAAAARERERAAAAARERAREAARERERAAAAABERERAAAAAAERERAAAAAAAAAREAAAAAAAABEQAAAAAAAAERAAAAAAAAAAAAAAAAD//wAA/48AAP8HAAD/BwAA/wcAAP4DAAD8AQAA+AEAAIABAAAAIwAAAH8AAAD/AACA/wAA4P8AAOD/AADx/wAA" rel="icon" type="image/x-icon" />
+  <style type="text/css">
+html {
+  background: #282A36;
+  color: #6272A4;
+  font-family: monospace;
+}
+
+body {
+  padding-top: 60px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+#input, #result {
+  background: #1C1D24;
+  border-radius: 2px;
+  padding: 10px;
+}
+
+#input {
+  box-sizing: border-box;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  min-height: 50px;
+  border: 0;
+  color: #6272A4;
+}
+
+#error { color: #FF79C6; }
+#result {
+  word-break: break-all;
+  white-space: pre-wrap;
+  color: grey;
+}
+
+.keyword { color: #50FA7B; }
+.value { color: #F1FA8C; }
+.key { color: #FFB86C; }
+.url { color: #66d9ef; }
+
+
+</style><script type="text/javascript">
+'use strict'
+
+// taken from npm/parse-curl
+const scan = (str, pattern, callback) => {
+  let result = ""
+  while (str.length > 0) {
+    const match = str.match(pattern)
+    if (match) {
+      result += str.slice(0, match.index)
+      result += callback(match)
+      str = str.slice(match.index + match[0].length)
+    } else {
+      result += str
+      str = ""
+    }
+  }
+}
+
+const splitReg = /\s*(?:([^\s\\\'\"]+)|'((?:[^\'\\]|\\.)*)'|"((?:[^\"\\]|\\.)*)"|(\\.?)|(\S))(\s|$)?/
+
+const split = line => {
+  if (line === undefined) line = ""
+
+  const words = []
+  let field = ""
+  scan(line, splitReg, ([ raw, word, sq, dq, escape, garbage, seperator ]) => {
+    if (garbage !== undefined) throw Error("Unmatched quote")
+    field += word || (sq || dq || escape).replace(/\\(?=.)/, "")
+    if (seperator !== undefined) {
+      words.push(field)
+      field = ""
+    }
+  })
+  if (field) {
+    words.push(field)
+  }
+  return words
+}
+
+const rewrite = baseArgs => baseArgs.reduce((args, a) => {
+  if (a.indexOf('-X') === 0) {
+    args.push('-X')
+    args.push(a.slice(2))
+  } else {
+    args.push(a)
+  }
+
+  return args
+}, [])
+
+const matchKeyValue = /: */
+const matchUrl = /^https?:\/\//
+const parseCurl = s => {
+  if (0 != s.indexOf('curl ')) throw Error('Missing curl keyword')
+  let out = { method: 'GET', header: {} }
+  let state = ''
+
+  rewrite(split(s)).forEach(arg => {
+    switch (true) {
+      case matchUrl.test(arg):
+        out.url = arg
+        break
+
+      case arg == '-A' || arg == '--user-agent':
+        state = 'user-agent'
+        break
+
+      case arg == '-H' || arg == '--header':
+        state = 'header'
+        break
+
+      case arg == '-d' || arg == '--data' || arg == '--data-ascii':
+        state = 'data'
+        break
+
+      case arg == '-u' || arg == '--user':
+        state = 'user'
+        break
+
+      case arg == '-I' || arg == '--head':
+        out.method = 'HEAD'
+        break
+
+      case arg == '-X' || arg == '--request':
+        state = 'method'
+        break
+
+      case arg == '-b' || arg =='--cookie':
+        state = 'cookie'
+        break
+
+      case arg == '--compressed':
+        out.header['Accept-Encoding'] = out.header['Accept-Encoding'] || 'deflate, gzip'
+        break
+
+      case !!arg:
+        switch (state) {
+          case 'header':
+            const delimIndex = arg.indexOf(': ')
+            out.header[arg.slice(0, delimIndex)] = arg.slice(delimIndex + 2)
+            state = ''
+            break
+          case 'user-agent':
+            out.header['User-Agent'] = arg
+            state = ''
+            break
+          case 'data':
+            out.header['Content-Type'] = out.header['Content-Type'] || 'application/x-www-form-urlencoded'
+            out.body = out.body
+              ? out.body +'&'+ arg
+              : arg
+            state = ''
+            break
+          case 'user':
+            out.header['Authorization'] = 'Basic '+ btoa(arg)
+            state = ''
+            break
+          case 'method':
+            out.method = arg
+            state = ''
+            break
+          case 'cookie':
+            out.header['Set-Cookie'] = arg
+            state = ''
+            break
+        }
+        break
+    }
+  })
+  return out
+}
+
+  </script>
+</head>
+<body>
+<h1>cURL to Fetch</h1>
+<textarea id="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<pre id="error"></pre>
+<div id="result"></div>
+<script type="text/javascript">
+'use strict'
+const _id = document.getElementById.bind(document)
+const _textArea = _id('input')
+const _result = _id('result')
+const _error = _id('error')
+const isNotEmpty = obj => obj && Object.keys(obj).length > 0
+const isObj = obj => obj.constructor === Object || !obj.constructor
+const _class = (className, text) => `<span class="${className}">${text}</span>`
+const _quote = (className, text) =>
+  `"<span class="${className}">${JSON.stringify(text).slice(1, -1)}</span>"`
+const classes = [ 'keyword', 'key', 'value', 'url' ]
+
+
+classes.forEach(key => {
+  _class[key] = t => _class(key, t)
+  _class[key].text = t => _quote(key, t)
+})
+
+const _base = _class.keyword('fetch')
+
+/* options :
+ - Extra comma
+ - referer
+ - cookies
+ - User-Agent
+ - Connection
+ - Accept(s)
+ - Cache-Control + Pragma
+ - always quotes
+ //
+ * Features
+ - highlight url and url options
+ - set spacer
+*/
+const matchLegalChars = /^[a-zA-Z$_][$_a-zA-Z0-9]+$/
+const spacer = '  ' // 2 spaces, you know it
+const noCase = (a, b) => a.toLowerCase().localeCompare(b.toLowerCase())
+const formatOpts = (indent, opts) => '{\n'+ Object.keys(opts).sort(noCase)
+  .map(key => {
+    const rawVal = opts[key]
+    if (!rawVal) return
+    const legalKey = matchLegalChars.test(key)
+      ? _class.key(key)
+      : _class.key.text(key)
+
+    return `${indent}${legalKey}: ${isObj(rawVal)
+      ? formatOpts(indent + spacer, rawVal)
+      : _class.value.text(rawVal) }`
+  }).filter(Boolean).join(',\n') + `\n${indent.slice(spacer.length)}}`
+
+const formatFetch = (url, opts) => isNotEmpty(opts)
+  ? `${_base}(${_class.url(JSON.stringify(url))}, ${formatOpts(spacer, opts)})`
+  : `${_base}(${_class.url(JSON.stringify(url))})`
+
+const printResult = (url, opts) => {
+  _result.innerHTML = formatFetch(url, opts)
+  _error.textContent = ''
+}
+
+let _prevError = ''
+let _prevInput = ''
+let _prevHeight = 50
+const update = () => {
+  try {
+    const newInput = _textArea.value
+    if (_prevInput === newInput) return
+    if (newInput.length < _prevInput.length) {
+      // force resize
+      _textArea.style.height = '50px'
+    }
+
+    localStorage.save = _prevInput = newInput
+
+    // update height
+    const { scrollHeight, style } = _textArea
+    const height = Math.max(50, scrollHeight)
+    if (height !== _prevHeight) {
+      _prevHeight = height
+      style.height = height +'px'
+    }
+
+    // update render
+    const { method, header, url, body } = parseCurl(newInput)
+    const opts = {}
+    if (method !== 'GET') opts.method = method
+    if (isNotEmpty(header)) opts.header = header
+    if (isNotEmpty(body)) opts.body = body
+    printResult(url, opts)
+  } catch (err) {
+    if (_prevError !== err.message) {
+      _prevError = err.message
+      console.error(err)
+    }
+    _result.textContent = ''
+    _error.textContent = err.message
+  }
+}
+
+const loop = () => update(requestAnimationFrame(loop))
+
+if (localStorage.save) {
+  _textArea.value = localStorage.save
+}
+
+loop()
+
+</script>
+</body>
+</html>

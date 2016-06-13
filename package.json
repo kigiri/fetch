@@ -1,0 +1,23 @@
+{
+  "name": "fetch",
+  "version": "1.0.0",
+  "description": "Convert CURL to javascript fetch api",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kigiri/fetch.git"
+  },
+  "keywords": [],
+  "author": "Clément Denis <le.mikmac@gmail.com> (http://cdenis.net)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kigiri/fetch/issues"
+  },
+  "homepage": "https://github.com/kigiri/fetch#readme",
+  "dependencies": {
+    "parse-curl": "^0.2.4"
+  }
+}
