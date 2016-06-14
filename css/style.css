@@ -1,0 +1,110 @@
+// balises
+html {
+  background: #282A36;
+  color: #6272A4;
+  font-family: monospace;
+}
+
+body {
+  padding-top: 60px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+pre {
+  width: 540px;
+  color: #BFBEB8;
+  margin: 0 auto 32px;
+  text-shadow: 0 0 11px #2A2A33, 1px 1px 1px #141419;
+}
+
+textarea::selection {
+  color: white;
+}
+
+// ids
+#copy-alert {
+  width: 120px;
+  text-align: center;
+  margin: 0px auto;
+  transform: translateY(-40px);
+  opacity: 0;
+  animation-duration: 1s;
+}
+
+#copy-alert.pop {
+  animation-name: slidein;
+}
+
+#copy-button {
+  cursor: pointer;
+  color: #FF79C6;
+  background: #1c1d24;
+  padding: 10px;
+  width: 120px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+#copy-button.pop {
+  color: #6272A4;
+}
+
+#input, #result {
+  background: #1C1D24;
+  border-radius: 2px;
+  padding: 10px;
+}
+
+#input {
+  box-sizing: border-box;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  min-height: 50px;
+  border: 0;
+  color: #6272A4;
+}
+
+#result {
+  word-break: break-all;
+  white-space: pre-wrap;
+  color: grey;
+  outline: none;
+}
+
+// selector
+::selection, #result span::selection {
+  background: #9b99b7;
+}
+
+// divs
+.pop, .ui, h2 {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.error { color: #FF79C6; }
+.keyword { color: #50FA7B; }
+.value { color: #F1FA8C; }
+.key { color: #FFB86C; }
+.url { color: #66d9ef; }
+.keyword::selection { color: #abffc0; }
+.value::selection { color: #f7fbd1; }
+.key::selection { color: #ffd9b1; }
+.url::selection { color: #acf2ff; }
+
+// keyframes
+@keyframes slidein {
+  from {
+    transform: translateY(10px);
+    opacity: 100;
+  }
+  to {
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+}
