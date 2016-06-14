@@ -10,9 +10,6 @@ html {
   color: #6272A4;
   font-family: monospace;
 }
-h2 {
-
-}
 
 #copy-alert {
   width: 120px;
@@ -122,7 +119,7 @@ try {
     '  return `template ${sup}string`',
     '}',].join('\n'))
 } catch (err) {
-  window.location = '/old-js.html'
+  window.location = '/fetch/old-js.html'
 }
 </script>
 </head>
@@ -446,19 +443,8 @@ _result.onfocus = () => selectElementContents(_result)
 window.onfocus = _textArea.onfocus = () => _textArea.select()
 _textArea.onblur = _result.onblur = clearSelection
 
-const focusChange = focus => {
-  console.log(focus)
-}
-
-window.onclick = ({ target }) => {
-  if (target === _textArea || _result.contains(target)) return
-  // if ()
-  // console.log(e.target)
-}
-
 loop()
 
-/// COPY BUTTON
 copieur(_result)
 </script>
 </body>

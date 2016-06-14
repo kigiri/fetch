@@ -10,9 +10,6 @@ html {
   color: #6272A4;
   font-family: monospace;
 }
-h2 {
-
-}
 
 #copy-alert {
   width: 120px;
@@ -472,21 +469,8 @@ window.onfocus = _textArea.onfocus = function () {
 };
 _textArea.onblur = _result.onblur = clearSelection;
 
-var focusChange = function focusChange(focus) {
-  console.log(focus);
-};
-
-window.onclick = function (_ref3) {
-  var target = _ref3.target;
-
-  if (target === _textArea || _result.contains(target)) return;
-  // if ()
-  // console.log(e.target)
-};
-
 loop();
 
-/// COPY BUTTON
 copieur(_result);
 </script>
 </body>
