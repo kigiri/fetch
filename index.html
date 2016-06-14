@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>cURL to Fetch</title>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEQAAAAAAAAERAAAAAAAAAREAAAAAAAARERAAAAAAAREREQAAAAARERERAAAAARERAREAARERERAAAAABERERAAAAAAERERAAAAAAAAAREAAAAAAAABEQAAAAAAAAERAAAAAAAAAAAAAAAAD//wAA/48AAP8HAAD/BwAA/wcAAP4DAAD8AQAA+AEAAIABAAAAIwAAAH8AAAD/AACA/wAA4P8AAOD/AADx/wAA" rel="icon" type="image/x-icon" />
   <style type="text/css">
 html {
@@ -111,8 +112,31 @@ textarea::selection {
 .url::selection { color: #acf2ff; }
 
 
-</style><script type="text/javascript">
+</style>
+<script type="text/javascript">
+"use strict"
+try {
+  eval([
+    'let wesh = ({ sup }, [ destructuring ]) => {',
+    '  // arrow fat yey',
+    '  return `template ${sup}string`',
+    '}',].join('\n'))
+} catch (err) {
+  window.location = '/old-js.html'
+}
+</script>
+</head>
+<body>
+<h2>&lt;&lt;&lt;&lt; from cURL...</h2>
+<textarea tabindex=1 id="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<h2 style="text-align: right;">...to fetch &gt;&gt;&gt;&gt;</h2>
+<pre id="error"></pre>
+<div id="result" tabindex=2></div>
+<div id="copy-alert">copied !</div>
+<div id="copy-button" class="ui">copy</div>
+<script>
 'use strict'
+// generic
 // http://stackoverflow.com/questions/6139107
 const selectElementContents = el => {
   const range = document.createRange()
@@ -318,18 +342,7 @@ const parseCurl = s => {
   return out
 }
 
-  </script>
-</head>
-<body>
-<h2><<<< from cURL...</h2>
-<textarea tabindex=1 id="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
-<h2 style="text-align: right;">...to fetch >>>></h2>
-<pre id="error"></pre>
-<div id="result" tabindex=2></div>
-<div id="copy-alert">copied !</div>
-<div id="copy-button" class="ui">copy</div>
-<script type="text/javascript">
-'use strict'
+// specific code
 const _id = document.getElementById.bind(document)
 const _textArea = _id('input')
 const _result = _id('result')
@@ -446,7 +459,7 @@ window.onclick = ({ target }) => {
 loop()
 
 /// COPY BUTTON
-const copycop = copieur(_result)
+copieur(_result)
 </script>
 </body>
 </html>

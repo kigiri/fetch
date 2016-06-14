@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>cURL to Fetch</title>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEQAAAAAAAAERAAAAAAAAAREAAAAAAAARERAAAAAAAREREQAAAAARERERAAAAARERAREAARERERAAAAABERERAAAAAAERERAAAAAAAAAREAAAAAAAABEQAAAAAAAAERAAAAAAAAAAAAAAAAD//wAA/48AAP8HAAD/BwAA/wcAAP4DAAD8AQAA+AEAAIABAAAAIwAAAH8AAAD/AACA/wAA4P8AAOD/AADx/wAA" rel="icon" type="image/x-icon" />
+  <style type="text/css">
+html {
+  background: #282A36;
+  color: #6272A4;
+  font-family: monospace;
+}
+h2 {
+
+}
+
+#copy-alert {
+  width: 120px;
+  text-align: center;
+  margin: 0px auto;
+  transform: translateY(-40px);
+  opacity: 0;
+  animation-duration: 1s;
+}
+
+#copy-alert.pop {
+  animation-name: slidein;
+}
+
+#copy-button {
+  cursor: pointer;
+  color: #FF79C6;
+  background: #1c1d24;
+  padding: 10px;
+  width: 120px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+#copy-button.pop {
+  color: #6272A4;
+}
+
+@keyframes slidein {
+  from {
+    transform: translateY(10px);
+    opacity: 100;
+  }
+  to {
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+}
+pre {
+  width: 540px;
+  color: #BFBEB8;
+  margin: 0 auto 32px;
+  text-shadow: 0 0 11px #2A2A33, 1px 1px 1px #141419;
+}
+.pop, .ui, h2 {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+body {
+  padding-top: 60px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+#input, #result {
+  background: #1C1D24;
+  border-radius: 2px;
+  padding: 10px;
+}
+
+#input {
+  box-sizing: border-box;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  min-height: 50px;
+  border: 0;
+  color: #6272A4;
+}
+
+.error { color: #FF79C6; }
+#result {
+  word-break: break-all;
+  white-space: pre-wrap;
+  color: grey;
+  outline: none;
+}
+
+textarea::selection {
+  color: white;
+}
+::selection, #result span::selection {
+  background: #9b99b7;
+}
+
+.keyword { color: #50FA7B; }
+.value { color: #F1FA8C; }
+.key { color: #FFB86C; }
+.url { color: #66d9ef; }
+.keyword::selection { color: #abffc0; }
+.value::selection { color: #f7fbd1; }
+.key::selection { color: #ffd9b1; }
+.url::selection { color: #acf2ff; }
+
+
+</style>
+</head>
+<body>
+<h2>&lt;&lt;&lt;&lt; from cURL...</h2>
+<textarea tabindex=1 id="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+<h2 style="text-align: right;">...to fetch &gt;&gt;&gt;&gt;</h2>
+<pre id="error"></pre>
+<div id="result" tabindex=2></div>
+<div id="copy-alert">copied !</div>
+<div id="copy-button" class="ui">copy</div>
+<script>
+'use strict';
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+// generic
+// http://stackoverflow.com/questions/6139107
+var selectElementContents = function selectElementContents(el) {
+  var range = document.createRange();
+  range.selectNodeContents(el);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+};
+
+var clearSelection = function clearSelection() {
+  if (document.selection) {
+    document.selection.empty();
+  } else if (window.getSelection) {
+    window.getSelection().removeAllRanges();
+  }
+};
+
+// copieur
+var copieur = function copieur(src, button, a) {
+  button || (button = document.getElementById('copy-button'));
+  a || (a = document.getElementById('copy-alert'));
+
+  function whichTransitionEvent() {
+    var t;
+    var el = document.createElement('fakeelement');
+    var transitions = {
+      transition: 'transitionend',
+      OTransition: 'oTransitionEnd',
+      MozTransition: 'transitionend',
+      WebkitTransition: 'webkitTransitionEnd'
+    };
+
+    for (t in transitions) {
+      if (el.style[t]) return transitions[t];
+    }
+  }
+  var inPopState = false;
+  function removeAlert() {
+    inPopState = false;
+    a.classList.remove('pop');
+    button.classList.remove('pop');
+  }
+
+  var transition = whichTransitionEvent();
+  if (transition) {
+    a.addEventListener(transition, removeAlert);
+  }
+
+  return button.onclick = function copyOnClick() {
+    if (!inPopState) {
+      console.log('copyinge');
+      inPopState = true;
+      a.classList.add('pop');
+      button.classList.add('pop');
+      if (!transition) {
+        setTimeout(removeAlert, 1000);
+      }
+    }
+    var success;
+    var focusedElement = document.activeElement;
+    selectElementContents(src);
+    try {
+      success = document.execCommand('copy');
+    } catch (err) {
+      success = false;
+    }
+    clearSelection();
+    if (!success) {
+      prompt('Oldschool copy box for you', src.textContent);
+    }
+    setTimeout(function () {
+      focusedElement.focus();
+    }, 10);
+  };
+};
+
+// taken from npm/parse-curl
+var scan = function scan(str, pattern, callback) {
+  var result = "";
+  while (str.length > 0) {
+    var match = str.match(pattern);
+    if (match) {
+      result += str.slice(0, match.index);
+      result += callback(match);
+      str = str.slice(match.index + match[0].length);
+    } else {
+      result += str;
+      str = "";
+    }
+  }
+};
+
+var splitReg = /\s*(?:([^\s\\\'\"]+)|'((?:[^\'\\]|\\.)*)'|"((?:[^\"\\]|\\.)*)"|(\\.?)|(\S))(\s|$)?/;
+
+var split = function split(line) {
+  if (line === undefined) line = "";
+
+  var words = [];
+  var field = "";
+  scan(line, splitReg, function (_ref) {
+    var _ref2 = _slicedToArray(_ref, 7);
+
+    var raw = _ref2[0];
+    var word = _ref2[1];
+    var sq = _ref2[2];
+    var dq = _ref2[3];
+    var escape = _ref2[4];
+    var garbage = _ref2[5];
+    var seperator = _ref2[6];
+
+    if (garbage !== undefined) throw Error("Unmatched quote");
+    field += word || (sq || dq || escape).replace(/\\(?=.)/, "");
+    if (seperator !== undefined) {
+      words.push(field);
+      field = "";
+    }
+  });
+  if (field) {
+    words.push(field);
+  }
+  return words;
+};
+
+var rewrite = function rewrite(baseArgs) {
+  return baseArgs.reduce(function (args, a) {
+    if (a.indexOf('-X') === 0) {
+      args.push('-X');
+      args.push(a.slice(2));
+    } else {
+      args.push(a);
+    }
+
+    return args;
+  }, []);
+};
+
+var matchKeyValue = /: */;
+var matchUrl = /^https?:\/\//;
+var parseCurl = function parseCurl(s) {
+  if (0 != s.indexOf('curl ')) throw Error('Missing curl keyword');
+  var out = { method: 'GET', header: {} };
+  var state = '';
+
+  rewrite(split(s)).forEach(function (arg) {
+    switch (true) {
+      case matchUrl.test(arg):
+        out.url = arg;
+        break;
+
+      case arg == '-A' || arg == '--user-agent':
+        state = 'user-agent';
+        break;
+
+      case arg == '-H' || arg == '--header':
+        state = 'header';
+        break;
+
+      case arg == '-d' || arg == '--data' || arg == '--data-ascii':
+        state = 'data';
+        break;
+
+      case arg == '-u' || arg == '--user':
+        state = 'user';
+        break;
+
+      case arg == '-I' || arg == '--head':
+        out.method = 'HEAD';
+        break;
+
+      case arg == '-X' || arg == '--request':
+        state = 'method';
+        break;
+
+      case arg == '-b' || arg == '--cookie':
+        state = 'cookie';
+        break;
+
+      case arg == '--compressed':
+        out.header['Accept-Encoding'] = out.header['Accept-Encoding'] || 'deflate, gzip';
+        break;
+
+      case !!arg:
+        switch (state) {
+          case 'header':
+            var delimIndex = arg.indexOf(': ');
+            out.header[arg.slice(0, delimIndex)] = arg.slice(delimIndex + 2);
+            state = '';
+            break;
+          case 'user-agent':
+            out.header['User-Agent'] = arg;
+            state = '';
+            break;
+          case 'data':
+            out.header['Content-Type'] = out.header['Content-Type'] || 'application/x-www-form-urlencoded';
+            out.body = out.body ? out.body + '&' + arg : arg;
+            state = '';
+            break;
+          case 'user':
+            out.header['Authorization'] = 'Basic ' + btoa(arg);
+            state = '';
+            break;
+          case 'method':
+            out.method = arg;
+            state = '';
+            break;
+          case 'cookie':
+            out.header['Set-Cookie'] = arg;
+            state = '';
+            break;
+        }
+        break;
+    }
+  });
+  return out;
+};
+
+// specific code
+var _id = document.getElementById.bind(document);
+var _textArea = _id('input');
+var _result = _id('result');
+var isNotEmpty = function isNotEmpty(obj) {
+  return obj && Object.keys(obj).length > 0;
+};
+var isObj = function isObj(obj) {
+  return obj.constructor === Object || !obj.constructor;
+};
+var _class = function _class(className, text) {
+  return '<span class="' + className + '">' + text + '</span>';
+};
+var _quote = function _quote(className, text) {
+  return '"<span class="' + className + '">' + JSON.stringify(text).slice(1, -1) + '</span>"';
+};
+var classes = ['keyword', 'key', 'value', 'url'];
+
+classes.forEach(function (key) {
+  _class[key] = function (t) {
+    return _class(key, t);
+  };
+  _class[key].text = function (t) {
+    return _quote(key, t);
+  };
+});
+
+var _base = _class.keyword('fetch');
+
+/* options :
+ - Extra comma
+ - referer
+ - cookies
+ - User-Agent
+ - Connection
+ - Accept(s)
+ - Cache-Control + Pragma
+ - always quotes
+ //
+ * Features
+ - highlight url and url options
+ - set spacer
+*/
+var matchLegalChars = /^[a-zA-Z$_][$_a-zA-Z0-9]+$/;
+var spacer = '  '; // 2 spaces, you know it
+var noCase = function noCase(a, b) {
+  return a.toLowerCase().localeCompare(b.toLowerCase());
+};
+var formatOpts = function formatOpts(indent, opts) {
+  return '{\n' + Object.keys(opts).sort(noCase).map(function (key) {
+    var rawVal = opts[key];
+    if (!rawVal) return;
+    var legalKey = matchLegalChars.test(key) ? _class.key(key) : _class.key.text(key);
+
+    return '' + indent + legalKey + ': ' + (isObj(rawVal) ? formatOpts(indent + spacer, rawVal) : _class.value.text(rawVal));
+  }).filter(Boolean).join(',\n') + ('\n' + indent.slice(spacer.length) + '}');
+};
+
+var formatFetch = function formatFetch(url, opts) {
+  return isNotEmpty(opts) ? _base + '(' + _class.url(JSON.stringify(url)) + ', ' + formatOpts(spacer, opts) + ')' : _base + '(' + _class.url(JSON.stringify(url)) + ')';
+};
+
+var printResult = function printResult(url, opts) {
+  return _result.innerHTML = formatFetch(url, opts);
+};
+
+var _prevError = '';
+var _prevInput = '';
+var _prevHeight = 50;
+var _forceResize = false;
+var update = function update() {
+  try {
+    var newInput = _textArea.value;
+    if (_prevInput === newInput) return;
+    if (newInput.length < _prevInput.length) {
+      // force resize
+      _textArea.style.height = '5px';
+      _forceResize = true;
+    }
+
+    localStorage.save = _prevInput = newInput;
+
+    // update height
+    var scrollHeight = _textArea.scrollHeight;
+    var style = _textArea.style;
+
+    if (_forceResize || scrollHeight !== _prevHeight) {
+      style.height = (_prevHeight = Math.max(50, scrollHeight)) + 'px';
+      _forceResize = false;
+    }
+
+    // update render
+
+    var _parseCurl = parseCurl(newInput);
+
+    var method = _parseCurl.method;
+    var header = _parseCurl.header;
+    var url = _parseCurl.url;
+    var body = _parseCurl.body;
+
+    var opts = {};
+    if (method !== 'GET') opts.method = method;
+    if (isNotEmpty(header)) opts.header = header;
+    if (isNotEmpty(body)) opts.body = body;
+    printResult(url, opts);
+  } catch (err) {
+    if (_prevError !== err.message) {
+      _prevError = err.message;
+      console.error(err);
+    }
+    _result.innerHTML = '<span class="error">' + err.message + '</span>';
+  }
+};
+
+var loop = function loop() {
+  return update(requestAnimationFrame(loop));
+};
+
+_textArea.value = localStorage.save ? localStorage.save : 'curl https://kigiri.github.io/fetch/';
+
+_result.onfocus = function () {
+  return selectElementContents(_result);
+};
+window.onfocus = _textArea.onfocus = function () {
+  return _textArea.select();
+};
+_textArea.onblur = _result.onblur = clearSelection;
+
+var focusChange = function focusChange(focus) {
+  console.log(focus);
+};
+
+window.onclick = function (_ref3) {
+  var target = _ref3.target;
+
+  if (target === _textArea || _result.contains(target)) return;
+  // if ()
+  // console.log(e.target)
+};
+
+loop();
+
+/// COPY BUTTON
+copieur(_result);
+</script>
+</body>
+</html>
