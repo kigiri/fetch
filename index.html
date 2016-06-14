@@ -134,6 +134,9 @@ try {
 <script>
 'use strict'
 // generic
+// parse url https://gist.github.com/jed/964849
+const parseUrl = (function (a){return function(b,c,d){a.href=b;c={};for(d in a)if(""+a[d]===a[d])c[d]=a[d];return c}}(document.createElement("a")))
+
 // http://stackoverflow.com/questions/6139107
 const selectElementContents = el => {
   const range = document.createRange()
@@ -259,11 +262,14 @@ const rewrite = baseArgs => baseArgs.reduce((args, a) => {
 
 const matchKeyValue = /: */
 const matchUrl = /^https?:\/\//
+const addArg = (currentValue, arg) => currentValue
+  ? currentValue +'&'+ arg
+  : arg
 const parseCurl = s => {
   if (0 != s.indexOf('curl ')) throw Error('Missing curl keyword')
   let out = { method: 'GET', header: {} }
   let state = ''
-
+  let urlParams = ''
   rewrite(split(s)).forEach(arg => {
     switch (true) {
       case matchUrl.test(arg):
@@ -280,6 +286,10 @@ const parseCurl = s => {
 
       case arg == '-d' || arg == '--data' || arg == '--data-ascii':
         state = 'data'
+        break
+
+      case arg == '--data-urlencode':
+        state = 'url'
         break
 
       case arg == '-u' || arg == '--user':
@@ -313,11 +323,13 @@ const parseCurl = s => {
             out.header['User-Agent'] = arg
             state = ''
             break
+          case 'url':
+            urlParams = addArg(urlParams, arg)
+            state = ''
+            break
           case 'data':
             out.header['Content-Type'] = out.header['Content-Type'] || 'application/x-www-form-urlencoded'
-            out.body = out.body
-              ? out.body +'&'+ arg
-              : arg
+            out.body = addArg(out.body, arg)
             state = ''
             break
           case 'user':
@@ -336,6 +348,11 @@ const parseCurl = s => {
         break
     }
   })
+
+  if (urlParams) {
+    out.url = out.url + (parseUrl(out.url).search ? '&' : '?') + urlParams
+  }
+
   return out
 }
 
