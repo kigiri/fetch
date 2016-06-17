@@ -260,8 +260,7 @@ const rewrite = baseArgs => baseArgs.reduce((args, a) => {
   return args
 }, [])
 
-const matchKeyValue = /: */
-const matchUrl = /^https?:\/\//
+const matchUrl = /((^https?:\/\/)|(^(?:[0-9]{1,3}\.){3}[0-9]{1,3})|localhost)/
 const addArg = (currentValue, arg) => currentValue
   ? currentValue +'&'+ arg
   : arg
@@ -270,6 +269,7 @@ const parseCurl = s => {
   let out = { method: 'GET', header: {} }
   let state = ''
   let urlParams = ''
+  let fallbackUrl = ''
   rewrite(split(s)).forEach(arg => {
     switch (true) {
       case matchUrl.test(arg):
@@ -315,8 +315,8 @@ const parseCurl = s => {
       case !!arg:
         switch (state) {
           case 'header':
-            const delimIndex = arg.indexOf(': ')
-            out.header[arg.slice(0, delimIndex)] = arg.slice(delimIndex + 2)
+            const delimIndex = arg.indexOf(':')
+            out.header[arg.slice(0, delimIndex)] = arg.slice(delimIndex + 1).trim()
             state = ''
             break
           case 'user-agent':
@@ -345,6 +345,9 @@ const parseCurl = s => {
             state = ''
             break
         }
+        break
+      default:
+        fallbackUrl = arg
         break
     }
   })
