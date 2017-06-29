@@ -266,7 +266,7 @@ const addArg = (currentValue, arg) => currentValue
   : arg
 const parseCurl = s => {
   if (0 != s.indexOf('curl ')) throw Error('Missing curl keyword')
-  let out = { method: 'GET', header: {} }
+  let out = { method: 'GET', headers: {} }
   let state = ''
   let urlParams = ''
   let fallbackUrl = ''
@@ -309,18 +309,18 @@ const parseCurl = s => {
         break
 
       case arg == '--compressed':
-        out.header['Accept-Encoding'] = out.header['Accept-Encoding'] || 'deflate, gzip'
+        out.headers['Accept-Encoding'] = out.headers['Accept-Encoding'] || 'deflate, gzip'
         break
 
       case !!arg:
         switch (state) {
           case 'header':
             const delimIndex = arg.indexOf(':')
-            out.header[arg.slice(0, delimIndex)] = arg.slice(delimIndex + 1).trim()
+            out.headers[arg.slice(0, delimIndex)] = arg.slice(delimIndex + 1).trim()
             state = ''
             break
           case 'user-agent':
-            out.header['User-Agent'] = arg
+            out.headers['User-Agent'] = arg
             state = ''
             break
           case 'url':
@@ -328,12 +328,12 @@ const parseCurl = s => {
             state = ''
             break
           case 'data':
-            out.header['Content-Type'] = out.header['Content-Type'] || 'application/x-www-form-urlencoded'
+            out.headers['Content-Type'] = out.headers['Content-Type'] || 'application/x-www-form-urlencoded'
             out.body = addArg(out.body, arg)
             state = ''
             break
           case 'user':
-            out.header['Authorization'] = 'Basic '+ btoa(arg)
+            out.headers['Authorization'] = 'Basic '+ btoa(arg)
             state = ''
             break
           case 'method':
@@ -341,7 +341,7 @@ const parseCurl = s => {
             state = ''
             break
           case 'cookie':
-            out.header['Set-Cookie'] = arg
+            out.headers['Set-Cookie'] = arg
             state = ''
             break
         }
@@ -438,10 +438,10 @@ const update = () => {
     }
 
     // update render
-    const { method, header, url, body } = parseCurl(newInput)
+    const { method, headers, url, body } = parseCurl(newInput)
     const opts = {}
     if (method !== 'GET') opts.method = method
-    if (isNotEmpty(header)) opts.header = header
+    if (isNotEmpty(headers)) opts.headers = headers
     if (isNotEmpty(body)) opts.body = body
     printResult(url, opts)
   } catch (err) {
