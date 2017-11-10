@@ -316,7 +316,12 @@ const parseCurl = s => {
         switch (state) {
           case 'header':
             const delimIndex = arg.indexOf(':')
-            out.headers[arg.slice(0, delimIndex)] = arg.slice(delimIndex + 1).trim()
+            const headerKey = arg.slice(0, delimIndex)
+            if (headerKey.toLowerCase() === 'cookie') {
+              out.credentials = 'include'
+            } else {
+              out.headers[headerKey] = arg.slice(delimIndex + 1).trim()
+            }
             state = ''
             break
           case 'user-agent':
@@ -330,6 +335,7 @@ const parseCurl = s => {
           case 'data':
             out.headers['Content-Type'] = out.headers['Content-Type'] || 'application/x-www-form-urlencoded'
             out.body = addArg(out.body, arg)
+            out.method || (out.method = 'post')
             state = ''
             break
           case 'user':
