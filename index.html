@@ -127,6 +127,7 @@ try {
 <h2>&lt;&lt;&lt;&lt; from cURL...</h2>
 <textarea tabindex=1 id="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
 <h2 style="text-align: right;">...to fetch &gt;&gt;&gt;&gt;</h2>
+<label>clean headers <input id="clean" checked type=checkbox></label>
 <pre id="error"></pre>
 <div id="result" tabindex=2></div>
 <div id="copy-alert">copied !</div>
@@ -289,7 +290,7 @@ const forbidden = [
   'Via',
 ]
 
-const parseCurl = s => {
+const parseCurl = (s, clean) => {
   if (0 != s.indexOf('curl ')) throw Error('Missing curl keyword')
   let out = { method: 'GET', headers: {} }
   let state = ''
@@ -404,13 +405,24 @@ const parseCurl = s => {
     console.log(`${msg} in fetch, so they are skipped (see https://fetch.spec.whatwg.org/#terminology-headers)`)
   }
 
+  if (clean) {
+    // http2 pseudo header
+    delete out.headers.Authority
+    delete out.headers.Scheme
+    delete out.headers.Method
+    delete out.headers.Path
+    // automaticaly added
+    delete out.headers['Accept-Language']
+    delete out.headers['User-Agent' ]
+  }
+
   return out
 }
-
 // specific code
 const _id = document.getElementById.bind(document)
 const _textArea = _id('input')
 const _result = _id('result')
+const _clean = _id('clean')
 const isNotEmpty = obj => obj && Object.keys(obj).length > 0
 const isObj = obj => obj.constructor === Object || !obj.constructor
 const _class = (className, text) => `<span class="${className}">${text}</span>`
@@ -468,14 +480,13 @@ let _prevHeight = 50
 let _forceResize = false
 const update = () => {
   try {
-    const newInput = _textArea.value
+    const newInput = _textArea.value + _clean.checked
     if (_prevInput === newInput) return
     if (newInput.length < _prevInput.length) {
       // force resize
       _textArea.style.height = '5px'
       _forceResize = true
     }
-
     localStorage.save = _prevInput = newInput
 
     // update height
@@ -486,7 +497,7 @@ const update = () => {
     }
 
     // update render
-    const { method, headers, url, body } = parseCurl(newInput)
+    const { method, headers, url, body } = parseCurl(newInput, _clean.checked)
     const opts = {}
     if (method !== 'GET') opts.method = method
     if (isNotEmpty(headers)) opts.headers = headers
