@@ -367,7 +367,6 @@ const parseCurl = (s, clean) => {
           case 'data-binary':
             out.headers['Content-Type'] || (out.headers['Content-Type'] = 'application/x-www-form-urlencoded')
             out.body = state === 'data' ? addArg(out.body, arg) : out.body
-            out.method || (out.method = 'post')
             state = ''
             break
           case 'user':
@@ -414,6 +413,10 @@ const parseCurl = (s, clean) => {
     // automaticaly added
     delete out.headers['Accept-Language']
     delete out.headers['User-Agent' ]
+  }
+
+  if (out.body && out.method.toLowerCase() === 'get') {
+    out.method = 'POST'
   }
 
   return out
