@@ -212,7 +212,7 @@ const copieur = (src, button, a) => {
 }
 
 
-// taken from npm/parse-curl
+// adapted from npm/parse-curl
 const scan = (str, pattern, callback) => {
   let result = ""
   while (str.length > 0) {
@@ -264,6 +264,31 @@ const matchUrl = /((^https?:\/\/)|(^(?:[0-9]{1,3}\.){3}[0-9]{1,3})|localhost)/
 const addArg = (currentValue, arg) => currentValue
   ? currentValue +'&'+ arg
   : arg
+
+const capitalize = str => str[0].toUpperCase() + str.slice(1).toLowerCase()
+const forbidden = [
+  'Accept-Charset',
+  'Accept-Encoding',
+  'Access-Control-Request-Headers',
+  'Access-Control-Request-Method',
+  'Connection',
+  'Content-Length',
+  'Cookie',
+  'Cookie2',
+  'Date',
+  'DNT',
+  'Expect',
+  'Host',
+  'Keep-Alive',
+  'Origin',
+  'Referer',
+  'TE',
+  'Trailer',
+  'Transfer-Encoding',
+  'Upgrade',
+  'Via',
+]
+
 const parseCurl = s => {
   if (0 != s.indexOf('curl ')) throw Error('Missing curl keyword')
   let out = { method: 'GET', headers: {} }
@@ -272,7 +297,7 @@ const parseCurl = s => {
   let fallbackUrl = ''
   rewrite(split(s)).forEach(arg => {
     switch (true) {
-      case matchUrl.test(arg):
+      case !out.url && matchUrl.test(arg):
         out.url = arg
         break
 
@@ -284,7 +309,7 @@ const parseCurl = s => {
         state = 'header'
         break
 
-      case arg == '-d' || arg == '--data' || arg == '--data-ascii':
+      case arg == '-d' || arg == '--data' || arg == '--data-ascii' || arg == '--data-binary':
         state = 'data'
         break
 
@@ -309,7 +334,7 @@ const parseCurl = s => {
         break
 
       case arg == '--compressed':
-        out.headers['Accept-Encoding'] = out.headers['Accept-Encoding'] || 'deflate, gzip'
+        out.headers['Accept-Encoding'] || (out.headers['Accept-Encoding'] = 'deflate, gzip')
         break
 
       case !!arg:
@@ -317,10 +342,15 @@ const parseCurl = s => {
           case 'header':
             const delimIndex = arg.indexOf(':')
             const headerKey = arg.slice(0, delimIndex)
-            if (headerKey.toLowerCase() === 'cookie') {
+              .split('-')
+              .map(capitalize)
+              .join('-')
+
+            if (headerKey === 'Cookie') {
               out.credentials = 'include'
             } else {
-              out.headers[headerKey] = arg.slice(delimIndex + 1).trim()
+              out.headers[headerKey] = arg.slice(delimIndex + 1)
+                .trim()
             }
             state = ''
             break
@@ -333,8 +363,9 @@ const parseCurl = s => {
             state = ''
             break
           case 'data':
-            out.headers['Content-Type'] = out.headers['Content-Type'] || 'application/x-www-form-urlencoded'
-            out.body = addArg(out.body, arg)
+          case 'data-binary':
+            out.headers['Content-Type'] || (out.headers['Content-Type'] = 'application/x-www-form-urlencoded')
+            out.body = state === 'data' ? addArg(out.body, arg) : out.body
             out.method || (out.method = 'post')
             state = ''
             break
@@ -360,6 +391,17 @@ const parseCurl = s => {
 
   if (urlParams) {
     out.url = out.url + (parseUrl(out.url).search ? '&' : '?') + urlParams
+  }
+
+  const forbiddenKeys = forbidden
+    .filter(key => key in out.headers)
+    .map(key => { delete out.headers[key]; return key })
+
+  if (forbiddenKeys.length) {
+    const msg = forbiddenKeys.length > 1
+      ? `${forbiddenKeys.join(', ')} are forbidden headers`
+      : `${forbiddenKeys} is a forbidden header`
+    console.log(`${msg} in fetch, so they are skipped (see https://fetch.spec.whatwg.org/#terminology-headers)`)
   }
 
   return out
