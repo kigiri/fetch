@@ -500,7 +500,7 @@ const update = () => {
     }
 
     // update render
-    const { method, headers, url, body } = parseCurl(newInput, _clean.checked)
+    const { method, headers, url, body } = parseCurl(_textArea.value, _clean.checked)
     const opts = {}
     if (method !== 'GET') opts.method = method
     if (isNotEmpty(headers)) opts.headers = headers
