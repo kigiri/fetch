@@ -103,11 +103,12 @@ textarea::selection {
 .value { color: #F1FA8C; }
 .key { color: #FFB86C; }
 .url { color: #66d9ef; }
+.var { color: #f8f8f2;  }
+.op { color: #ff79c6;  }
 .keyword::selection { color: #abffc0; }
 .value::selection { color: #f7fbd1; }
 .key::selection { color: #ffd9b1; }
 .url::selection { color: #acf2ff; }
-
 
 </style>
 <script type="text/javascript">
@@ -296,6 +297,7 @@ const parseCurl = (s, clean) => {
   let state = ''
   let urlParams = ''
   let fallbackUrl = ''
+  let formString = ''
   rewrite(split(s)).forEach(arg => {
     switch (true) {
       case !out.url && matchUrl.test(arg):
@@ -308,6 +310,14 @@ const parseCurl = (s, clean) => {
 
       case arg == '-H' || arg == '--header':
         state = 'header'
+        break
+
+      case arg == '-F' || arg == '--form' || arg == '--form-data':
+        state = 'form'
+        break
+
+      case arg == '--form-string':
+        state = 'form-string'
         break
 
       case arg == '-d' || arg == '--data' || arg == '--data-ascii' || arg == '--data-binary':
@@ -369,6 +379,16 @@ const parseCurl = (s, clean) => {
             out.body = state === 'data' ? addArg(out.body, arg) : out.body
             state = ''
             break
+          case 'form-string':
+            formString = arg
+            break
+          case 'form':
+            out.headers['Content-Type'] || (out.headers['Content-Type'] = 'multipart/form-data')
+            ;(out.formData || (out.formData = [])).push([
+              arg.slice(0, arg.indexOf('=')),
+              arg.slice(arg.indexOf('=') + 1),
+            ])
+            break
           case 'user':
             out.headers['Authorization'] = 'Basic '+ btoa(arg)
             state = ''
@@ -404,6 +424,10 @@ const parseCurl = (s, clean) => {
     console.log(`${msg} in fetch, so they are skipped (see https://fetch.spec.whatwg.org/#terminology-headers)`)
   }
 
+  if (formString) {
+    out.headers['Content-Type'] += '; boundary=' + formString
+  }
+
   if (clean) {
     // http2 pseudo header
     delete out.headers.Authority
@@ -431,7 +455,7 @@ const isObj = obj => obj.constructor === Object || !obj.constructor
 const _class = (className, text) => `<span class="${className}">${text}</span>`
 const _quote = (className, text) =>
   `"<span class="${className}">${JSON.stringify(text).slice(1, -1)}</span>"`
-const classes = [ 'keyword', 'key', 'value', 'url' ]
+const classes = [ 'keyword', 'key', 'value', 'url', 'op', 'var' ]
 
 
 classes.forEach(key => {
@@ -458,10 +482,12 @@ const _base = _class.keyword('fetch')
 const matchLegalChars = /^[a-zA-Z$_][$_a-zA-Z0-9]+$/
 const spacer = '  ' // 2 spaces, you know it
 const noCase = (a, b) => a.toLowerCase().localeCompare(b.toLowerCase())
+const VariableSymbol = Symbol('variable')
 const formatOpts = (indent, opts) => '{\n'+ Object.keys(opts).sort(noCase)
   .map(key => {
     const rawVal = opts[key]
     if (!rawVal) return
+    if (rawVal[VariableSymbol]) return _class.var(spacer + rawVal[VariableSymbol])
     const legalKey = matchLegalChars.test(key)
       ? _class.key(key)
       : _class.key.text(key)
@@ -475,7 +501,9 @@ const formatFetch = (url, opts) => isNotEmpty(opts)
   ? `${_base}(${_class.url(JSON.stringify(url))}, ${formatOpts(spacer, opts)})`
   : `${_base}(${_class.url(JSON.stringify(url))})`
 
-const printResult = (url, opts) => _result.innerHTML = formatFetch(url, opts)
+const printResult = (url, opts, extra) => _result.innerHTML = extra
+  ? extra +'\n'+ formatFetch(url, opts)
+  : formatFetch(url, opts)
 
 let _prevError = ''
 let _prevInput = ''
@@ -490,7 +518,8 @@ const update = () => {
       _textArea.style.height = '5px'
       _forceResize = true
     }
-    localStorage.save = _prevInput = newInput
+    localStorage.save = _textArea.value
+    _prevInput = newInput
 
     // update height
     const { scrollHeight, style } = _textArea
@@ -500,12 +529,20 @@ const update = () => {
     }
 
     // update render
-    const { method, headers, url, body } = parseCurl(_textArea.value, _clean.checked)
+    const { method, headers, url, body, formData } = parseCurl(_textArea.value, _clean.checked)
     const opts = {}
     if (method !== 'GET') opts.method = method
     if (isNotEmpty(headers)) opts.headers = headers
-    if (isNotEmpty(body)) opts.body = body
-    printResult(url, opts)
+    if (isNotEmpty(body)) {
+      opts.body = body
+    } else if (isNotEmpty(formData)) {
+      opts.body = { [VariableSymbol]: 'body' }
+      printResult(url, opts, formData.reduce((acc, [ key, value ]) =>
+        `${acc}${_class.var('body')}.${_class.keyword('append')}(${_class.value.text(key)}, ${_class.value.text(value)})\n`,
+        `${_class.url('const')} ${_class.var('body')} ${_class.op('= new')} ${_class.url('FormData')}\n`))
+    } else {
+      printResult(url, opts)
+    }
   } catch (err) {
     if (_prevError !== err.message) {
       _prevError = err.message
