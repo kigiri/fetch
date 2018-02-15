@@ -533,9 +533,8 @@ const update = () => {
     const opts = {}
     if (method !== 'GET') opts.method = method
     if (isNotEmpty(headers)) opts.headers = headers
-    if (isNotEmpty(body)) {
-      opts.body = body
-    } else if (isNotEmpty(formData)) {
+    if (isNotEmpty(body)) opts.body = body
+    if (isNotEmpty(formData)) {
       opts.body = { [VariableSymbol]: 'body' }
       printResult(url, opts, formData.reduce((acc, [ key, value ]) =>
         `${acc}${_class.var('body')}.${_class.keyword('append')}(${_class.value.text(key)}, ${_class.value.text(value)})\n`,

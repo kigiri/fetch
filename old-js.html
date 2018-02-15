@@ -534,9 +534,8 @@ var update = function update() {
     var opts = {};
     if (method !== 'GET') opts.method = method;
     if (isNotEmpty(headers)) opts.headers = headers;
-    if (isNotEmpty(body)) {
-      opts.body = body;
-    } else if (isNotEmpty(formData)) {
+    if (isNotEmpty(body)) opts.body = body;
+    if (isNotEmpty(formData)) {
       opts.body = _defineProperty({}, VariableSymbol, 'body');
       printResult(url, opts, formData.reduce(function (acc, _ref3) {
         var _ref4 = _slicedToArray(_ref3, 2),
