@@ -492,9 +492,11 @@ const formatOpts = (indent, opts) => '{\n'+ Object.keys(opts).sort(noCase)
       ? _class.key(key)
       : _class.key.text(key)
 
-    return `${indent}${legalKey}: ${isObj(rawVal)
+    const value = isObj(rawVal)
       ? formatOpts(indent + spacer, rawVal)
-      : _class.value.text(rawVal) }`
+      : _class.value.text(rawVal.replace(/[&<>'"]/g, e => `&#${e.charCodeAt(0)};`))
+
+    return `${indent}${legalKey}: ${value}`
   }).filter(Boolean).join(',\n') + `\n${indent.slice(spacer.length)}}`
 
 const formatFetch = (url, opts) => isNotEmpty(opts)
